@@ -224,88 +224,106 @@
     </div>
 
     <script>
-        const chatBody = document.getElementById('chat-body');
-        const promptInput = document.getElementById('prompt-input');
-        const sendBtn = document.getElementById('send-btn');
+    const chatBody = document.getElementById('chat-body');
+    const promptInput = document.getElementById('prompt-input');
+    const sendBtn = document.getElementById('send-btn');
 
-        // Auto-scroll to bottom
-        function scrollToBottom() {
-            chatBody.scrollTop = chatBody.scrollHeight;
+    // Auto-scroll to bottom
+    function scrollToBottom() {
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    // Add message to chat
+    function addMessage(text, isUser) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+        if (isUser) {
+            messageDiv.textContent = text;
+        } else {
+            messageDiv.innerHTML = text; // Render HTML for bot responses
         }
-
-        // Add message to chat
-        function addMessage(text, isUser) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
-            if (isUser) {
-                messageDiv.textContent = text;
-            } else {
-                messageDiv.innerHTML = text; // Render HTML for bot responses
-            }
-            chatBody.appendChild(messageDiv);
-            scrollToBottom();
-        }
-
-        // Show animated loader
-        function showLoader() {
-            const loaderContainer = document.createElement('div');
-            loaderContainer.className = 'loader-container';
-            loaderContainer.id = 'loader';
-            const loaderDiv = document.createElement('div');
-            loaderDiv.className = 'loader';
-            loaderContainer.appendChild(loaderDiv);
-            chatBody.appendChild(loaderContainer);
-            scrollToBottom();
-            return loaderContainer;
-        }
-
-        // Remove loader
-        function removeLoader(loader) {
-            if (loader) {
-                loader.remove();
-            }
-        }
-
-        // Handle send button click or Enter key
-        async function sendMessage() {
-            const prompt = promptInput.value.trim();
-            if (!prompt) return;
-
-            addMessage(prompt, true);
-            promptInput.value = '';
-
-            const loader = showLoader();
-
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ prompt }),
-                });
-
-                if (!response.ok) throw new Error('Network error');
-
-                const data = await response.json();
-                removeLoader(loader);
-                addMessage(data.response, false);
-            } catch (error) {
-                removeLoader(loader);
-                addMessage('Oops! Something went wrong connecting to the server.', false);
-            }
-        }
-
-        // Event listeners
-        sendBtn.addEventListener('click', sendMessage);
-        promptInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        // Initial scroll to bottom
+        chatBody.appendChild(messageDiv);
         scrollToBottom();
-    </script>
+    }
+
+    // Show animated loader
+    function showLoader() {
+        const loaderContainer = document.createElement('div');
+        loaderContainer.className = 'loader-container';
+        loaderContainer.id = 'loader';
+        const loaderDiv = document.createElement('div');
+        loaderDiv.className = 'loader';
+        loaderContainer.appendChild(loaderDiv);
+        chatBody.appendChild(loaderContainer);
+        scrollToBottom();
+        return loaderContainer;
+    }
+
+    // Remove loader
+    function removeLoader(loader) {
+        if (loader) {
+            loader.remove();
+        }
+    }
+
+    // Handle send button click or Enter key
+    async function sendMessage() {
+        const prompt = promptInput.value.trim();
+        if (!prompt) return;
+
+        addMessage(prompt, true);
+        promptInput.value = '';
+
+        const loader = showLoader();
+
+        try {
+            // Send POST request to /api/chat
+            const chatResponse = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt }),
+            });
+
+            // Send POST request to n8n webhook
+            const n8nResponse = await fetch('https://srikarayilneni.app.n8n.cloud/webhook-test/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt }), // Sending the same prompt data; modify as needed
+            });
+
+            // Handle chat API response
+            if (!chatResponse.ok) throw new Error('Chat API network error');
+            const chatData = await chatResponse.json();
+
+            // Handle n8n response (optional, depending on your needs)
+            if (!n8nResponse.ok) {
+                console.error('n8n webhook error:', n8nResponse.status);
+                // Optionally handle n8n error silently or show a message
+            }
+
+            removeLoader(loader);
+            addMessage(chatData.response, false);
+        } catch (error) {
+            removeLoader(loader);
+            addMessage('Oops! Something went wrong connecting to the server.', false);
+            console.error('Error:', error);
+        }
+    }
+
+    // Event listeners
+    sendBtn.addEventListener('click', sendMessage);
+    promptInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    // Initial scroll to bottom
+    scrollToBottom();
+</script>
 </body>
 </html>
