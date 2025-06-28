@@ -9,8 +9,9 @@ class Chat:
         
     def bot(self, prompt):
         API_URL = "https://router.huggingface.co/novita/v3/openai/chat/completions"
+        api_key = os.environ.get('GENAI')
         headers = {
-            "Authorization": "Bearer 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",
+            "Authorization": f"Bearer {api_key}",
         }
 
         def query(payload):
