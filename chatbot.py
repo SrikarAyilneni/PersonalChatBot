@@ -1,34 +1,28 @@
 import os
-import requests
-
-
+import google.generativeai as genai
 
 class Chat:
     def __init__(self):
         pass
         
     def bot(self, prompt):
-        API_URL = "https://router.huggingface.co/novita/v3/openai/chat/completions"
         api_key = os.environ.get('GENAI')
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-        }
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
 
-        def query(payload):
-            response = requests.post(API_URL, headers=headers, json=payload)
-            return response.json()
-
-        response = query({
-            "messages": [
+        response = model.generate_content({
+            "contents": [
                 {
                     "role": "user",
-                    "content": prompt
+                    "parts": [{"text": prompt}]
                 }
-            ],
-            "model": "minimaxai/minimax-m1-80k"
+            ]
         })
 
-        rs = response["choices"][0]["message"]["content"]
-        idx = rs.index("</think>")+8
-        rs = rs[idx:]
+        rs = response.text
+        try:
+            idx = rs.index("</think>")+8
+            rs = rs[idx:]
+        except ValueError:
+            pass  # If </think> tag is not found, return the full response
         return rs
