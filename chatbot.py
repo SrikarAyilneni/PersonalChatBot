@@ -10,7 +10,7 @@ class Chat:
     def bot(self, prompt):
         API_URL = "https://router.huggingface.co/novita/v3/openai/chat/completions"
         headers = {
-            "Authorization": "Bearer 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",
+            "Authorization": "Bearer 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",
         }
 
         def query(payload):
